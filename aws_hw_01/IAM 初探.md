@@ -1,6 +1,6 @@
 ## 【問答題】
 
-### root user 跟 iam user 的差別？
+### 1. root user 跟 iam user 的差別？
 
 | 特性 | Root User | IAM User |
 | :----: | :----: | :----: |
@@ -14,7 +14,7 @@
 
 <br>
 
-### user, group, role, policy 彼此間的關係為何？policy 的格式為何？
+### 2. user, group, role, policy 彼此間的關係為何？policy 的格式為何？
 
 <img width="2878" height="1620" alt="image" src="https://github.com/user-attachments/assets/494aefd0-9ecf-40d6-ae76-9ad8c37e32b2" />
 
@@ -30,7 +30,7 @@
   * 關係：User 可以「變身」成某個 Role；EC2 機器也可以「戴上」某個 Role 來獲得權限。
 
 * **Policy (策略)**：這是一份純文字文件，規定了「准許」或「拒絕」哪些動作。
-  * 關係：Policy 是靈魂，它必須**附加（Attach）**在 User、Group 或 Role 上，這些身分才會有權限。
+  * 關係：Policy 是靈魂，它必須**附加**在 User、Group 或 Role 上，這些身分才會有權限。
 
 | 實體 (Entity) | 是否能直接附加 Policy？ | 是否能加入 Group？ |
 | :----: | :----: | :----: |
@@ -68,7 +68,7 @@ AWS 的 Policy 是以 JSON 格式 撰寫的，裡面主要包含以下四個關�
 
 ## 【實作題】
 
-### 為 root account 創建 MFA 登入。
+### 1. 為 root account 創建 MFA 登入。
 
 1. 進入 IAM 控制台：
 * 在上方搜尋列輸入 IAM 並進入。
@@ -94,7 +94,7 @@ AWS 的 Policy 是以 JSON 格式 撰寫的，裡面主要包含以下四個關�
 
 <br>
 
-### 創建 aws credential（access key & secret），並且使用 aws cli 嘗試存取 ec2 列表（可以手動創建一台機器）及 s3 列表。
+### 2. 創建 aws credential（access key & secret），並且使用 aws cli 嘗試存取 ec2 列表（可以手動創建一台機器）及 s3 列表。
 
 `Access Key` 和 `Secret Access Key` 就像是你的身份證與密碼的「電腦版」，專門給程式（如 AWS CLI）使用。
 
@@ -134,7 +134,7 @@ aws ec2 describe-instances
 
 <br>
 
-### 創建一個 user，名為 `s3_readonly`，並且僅給予其 s3 readonly 的權限，為此 user 創建 credential 並且設定在 aws 內，使用不同的 profile 可以指定用哪個 credential 跟 aws 溝通，驗證方式為嘗試取得 ec2 及 s3 的列表，其中一個會失敗。
+### 3. 創建一個 user，名為 `s3_readonly`，並且僅給予其 s3 readonly 的權限，為此 user 創建 credential 並且設定在 aws 內，使用不同的 profile 可以指定用哪個 credential 跟 aws 溝通，驗證方式為嘗試取得 ec2 及 s3 的列表，其中一個會失敗。
 
 這題的核心在於練習 **「最小權限原則」** 以及如何透過 **Profile** 在同一台電腦上切換不同的身分。
 
@@ -174,13 +174,13 @@ aws configure --profile s3_user
 ```bash
 aws s3 ls --profile s3_user
 ```
-* *結果：* 應該能正常執行，列出空列表或現有的 Bucket。
+* 結果：應該能正常執行，列出空列表或現有的 Bucket。
 
 2. **驗證 EC2 存取（預期失敗）**：
 ```bash
 aws ec2 describe-instances --profile s3_user
 ```
-* *結果：* 應該會噴出報錯訊息：`An error occurred (UnauthorizedOperation) when calling the DescribeInstances operation...`。
+* 結果：應該會噴出報錯訊息：`An error occurred (UnauthorizedOperation) when calling the DescribeInstances operation...`。
 
 * 結果圖示
   * <img width="1113" height="626" alt="image" src="https://github.com/user-attachments/assets/36254f9b-8414-4ef5-9b60-350ee587f284" />
@@ -191,9 +191,9 @@ aws ec2 describe-instances --profile s3_user
 
 <br>
 
-### 嘗試創建 inline policy，使 s3_readonly 這個使用者在某個時間後就無法存取 s3，並且回答 inline policy 可以用在哪些地方。
+### 4. 嘗試創建 inline policy，使 s3_readonly 這個使用者在某個時間後就無法存取 s3，並且回答 inline policy 可以用在哪些地方。
 
-這題非常有意思，我們要從「現成的 Policy」進階到「手動客製化 Policy」，並且加入**時間限制**這個進階條件。
+從「現成的 Policy」進階到「手動客製化 Policy」，並且加入**時間限制**這個進階條件。
 
 #### 什麼是 Inline Policy？
 
@@ -205,7 +205,7 @@ aws ec2 describe-instances --profile s3_user
 
 #### 實作步驟：讓 `s3_readonly` 在特定時間後失效
 
-1. **分離 (Detach) 原有的 Managed Policy**
+1. **移除原有的 Managed Policy**
 
 在進行時間限制測試前，必須先拿掉原本的「永久通行證」。
 
@@ -264,5 +264,57 @@ aws ec2 describe-instances --profile s3_user
 
 <br>
 
-### 嘗試創建 EC2，並且為其創建一個 S3ReadOnlyRole 的 role，使 ec2 上可以使用 aws cli（或是 sdk） 存取 s3 資源，並且不需要設定 access key。（這題可以用 aws linux，因為他有內建 aws cli）
+### 5. 嘗試創建 EC2，並且為其創建一個 S3ReadOnlyRole 的 role，使 ec2 上可以使用 aws cli（或是 sdk） 存取 s3 資源，並且不需要設定 access key。（這題可以用 aws linux，因為他有內建 aws cli）
+
+這題是 IAM 實作中最精華的部分，它介紹了 **「IAM Role (角色)」** 如何讓 AWS 資源（如 EC2）之間進行**無金鑰**（Keyless）的安全通訊。
+
+這題的重點是：**不要在 EC2 裡面設定 Access Key**。我們改用「賦予身分」的方式讓 EC2 具備權限。
+
+---
+
+#### 第一步：創建 IAM Role
+
+首先，我們要建立一個專門給 EC2 穿的「制服」。
+
+1. 進入 **IAM 控制台**，點擊左側 **Roles**  **Create role**。
+2. **Select trusted entity**：選擇 **AWS service**，並在下方選擇 **EC2**（這代表這套制服是給 EC2 穿的）。
+3. **Add permissions**：搜尋並勾選 `AmazonS3ReadOnlyAccess`。
+4. **Name, review, and create**：將 Role 命名為 `EC2S3ReadOnlyRole`。
+* <img width="1920" height="941" alt="image" src="https://github.com/user-attachments/assets/0fd33222-a47e-4ed3-9ae6-30aa022955b2" />
+<img width="1920" height="866" alt="image" src="https://github.com/user-attachments/assets/c8bb3159-1762-4a27-b62a-840fe817f5a7" />
+
+
+#### 第二步：創建 EC2 並關聯 Role
+
+1. 進入 **EC2 控制台**，點擊 **Launch instance**。
+2. **設定規格**：選擇 Amazon Linux 2023（內建已安裝 AWS CLI）。
+3. **關鍵設定 (Advanced details)**：
+* 向下滾動找到 **IAM instance profile**。
+* 在下拉選單中選擇你剛剛建立的 **`EC2S3ReadOnlyRole`**。
+* <img width="1920" height="1032" alt="image" src="https://github.com/user-attachments/assets/4c0a4ea1-fa47-4d2f-813f-5f9fae2917ad" />
+
+4. **啟動機器**：完成其餘設定（如 Key pair 和 Security Group）後啟動。
+* <img width="1920" height="1032" alt="image" src="https://github.com/user-attachments/assets/7491f1fb-a6dc-43ad-9a39-81552408aeed" />
+
+
+#### 第三步：驗證（不設定 Access Key）
+
+* 透過 SSH 或 **Instance Connect** 登入你的 EC2。
+```bash
+ssh -i C:\Users\Steven\Downloads\aws-0111.pem ec2-user@35.77.99.8
+```
+
+* **直接執行指令**（千萬不要下 `aws configure`）：
+```bash
+aws s3 ls
+```
+
+* **觀察結果**：你會發現指令成功執行了！即便你沒有輸入任何 Access Key。
+
+* 結果圖示
+  * <img width="1130" height="626" alt="image" src="https://github.com/user-attachments/assets/3159d9e0-cf0e-469d-8ec2-eafc1945287c" />
+
+
+
+
 
