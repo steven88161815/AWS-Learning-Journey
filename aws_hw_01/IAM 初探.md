@@ -193,6 +193,71 @@ aws ec2 describe-instances --profile s3_user
 
 ### 嘗試創建 inline policy，使 s3_readonly 這個使用者在某個時間後就無法存取 s3，並且回答 inline policy 可以用在哪些地方。
 
+這題非常有意思，我們要從「現成的 Policy」進階到「手動客製化 Policy」，並且加入**時間限制**這個進階條件。
+
+#### 什麼是 Inline Policy？
+
+* **定義**：Inline Policy（內嵌策略）是直接嵌入在某個 User、Group 或 Role 中的 Policy。它與該身分是「共生」的，如果你刪除了該 User，這筆 Policy 也會跟著消失。
+* **可以用在哪裡？**：
+  * **特定單一使用者**：當某個權限非常特殊，且你確定不會給其他人用時。
+  * **確保權限不被誤用**：因為它不能像 Managed Policy 那樣被隨意掛載給別人。
+  * **強一致性**：確保身分與權限綁死，不會因為有人修改了外部的 Managed Policy 而受影響。
+
+#### 實作步驟：讓 `s3_readonly` 在特定時間後失效
+
+1. **分離 (Detach) 原有的 Managed Policy**
+
+在進行時間限制測試前，必須先拿掉原本的「永久通行證」。
+
+* **進入 IAM 控制台**：點擊左側 **Users**，選擇 `s3_readonly`。
+* **移除權限**：在 **Permissions** 標籤頁中，找到 `AmazonS3ReadOnlyAccess`，點擊該政策旁邊的 **Remove**。
+* **確認**：此時該使用者的權限列表應該是空的，或者只有你即將建立的 Inline Policy。
+* <img width="1920" height="945" alt="image" src="https://github.com/user-attachments/assets/47c04a52-be60-42f6-adfa-007b8548baca" />
+
+
+2. **創建帶有時間限制的 Inline Policy**
+
+現在我們為他量身打造一個「有期限的通行證」。
+
+* **建立 Inline Policy**：在同一個使用者頁面，點擊 **Add permissions**  **Create inline policy**。
+* **切換至 JSON 編輯器**：將以下內容貼入。
+* **注意**：請將 `DateLessThan` 的時間設定為**現在時間往後推 5~10 分鐘**。
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:Get*",
+        "s3:List*"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "DateLessThan": {
+          "aws:CurrentTime": "2026-01-11T14:10:00Z" 
+        }
+      }
+    }
+  ]
+}
+```
+* **命名與儲存**：命名為 `S3TempAccess` 並儲存。
+
+3. **驗證步驟 (雙重測試)**
+
+* **測試 A：時間到期前**
+  * 輸入：`aws s3 ls --profile s3_user`
+  * **預期結果**：成功列出 S3 資源。
+
+* **測試 B：時間到期後**
+  * 輸入：`aws s3 ls --profile s3_user`
+  * **預期結果**：噴出錯誤訊息 `An error occurred (AccessDenied) when calling the ListBuckets operation`。
+
+* 結果圖示
+  * <img width="1113" height="626" alt="image" src="https://github.com/user-attachments/assets/bade2fcd-c79b-43be-a0e9-00bb546584ce" />
+  * <img width="1130" height="626" alt="image" src="https://github.com/user-attachments/assets/1924b8a1-c471-4639-a79c-1c1182af1dea" />
+
 <br>
 
 ---
@@ -200,3 +265,4 @@ aws ec2 describe-instances --profile s3_user
 <br>
 
 ### 嘗試創建 EC2，並且為其創建一個 S3ReadOnlyRole 的 role，使 ec2 上可以使用 aws cli（或是 sdk） 存取 s3 資源，並且不需要設定 access key。（這題可以用 aws linux，因為他有內建 aws cli）
+
