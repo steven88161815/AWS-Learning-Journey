@@ -96,10 +96,39 @@ AWS 的 Policy 是以 JSON 格式 撰寫的，裡面主要包含以下四個關�
 
 ### 創建 aws credential（access key & secret），並且使用 aws cli 嘗試存取 ec2 列表（可以手動創建一台機器）及 s3 列表。
 
-Access Key 和 Secret Access Key 就像是你的身份證與密碼的「電腦版」，專門給程式（如 AWS CLI）使用。
+`Access Key` 和 `Secret Access Key` 就像是你的身份證與密碼的「電腦版」，專門給程式（如 AWS CLI）使用。
 
+#### 第一步：創建 Access Key (在網頁上)
+* 進入 IAM 控制台，點擊右上角帳號名 $\rightarrow$ Security Credentials。
+* 向下滾動到 Access keys 區塊，點擊 Create access key。
+* 重要： 點擊下載 .csv 檔或複製金鑰。
+  * ⚠️ 注意： 這是你唯一一次能看到 Secret Access Key 的機會，弄丟了就要重新建一個。
+ 
+#### 第二步：設定 AWS CLI (在你的電腦上)
+如果你還沒安裝 AWS CLI，請先下載安裝。接著開啟終端機（CMD 或 Terminal）：
 
+* 輸入 `aws configure`。
+* 依序填入：
+  * AWS Access Key ID: (貼上剛才的 ID)
+  * AWS Secret Access Key: (貼上剛才的 Secret)
+  * Default region name: `ap-northeast-1` (東京，或是你常用的區域)
+  * Default output format: `json`
 
+#### 第三步：驗證並嘗試存取列表
+
+* 列出 S3 桶子：
+``` Bash
+aws s3 ls
+```
+
+* 列出 EC2 列表：
+``` Bash
+aws ec2 describe-instances
+```
+
+* 結果圖示
+  * <img width="1113" height="626" alt="image" src="https://github.com/user-attachments/assets/5d4ef393-d0ad-472e-b4a9-2bcd130b02d4" />
+ 
 <br>
 
 ---
