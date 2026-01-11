@@ -70,23 +70,23 @@ AWS 的 Policy 是以 JSON 格式 撰寫的，裡面主要包含以下四個關�
 
 ### 為 root account 創建 MFA 登入。
 
-* 進入 IAM 控制台：
-  * 在上方搜尋列輸入 IAM 並進入。
-  * 在儀表板右側的「Security Status」或「IAM resources」下方，你會看到 「Add MFA for root user」 的警告提示，點擊 Assign MFA。
-* 選擇設備類型：
-  * 選擇 Authenticator app（虛擬 MFA 設備）。這是最方便的做法，不需要買實體硬體。
-  * <img width="984" height="769" alt="image" src="https://github.com/user-attachments/assets/f7067189-eb63-4941-b50a-c7cf8f532430" />
-* 設定 App：
-  * 在手機下載 Google Authenticator。
-  * 點擊 AWS 上的 Show QR code。
-  * 用手機 App 掃描 QR code。
-* 完成驗證：
-  * 手機會出現每 30 秒更換一次的 6 位數字。
-  * 在 AWS 畫面上輸入連續產生的兩組驗證碼（MFA code 1 & MFA code 2）。
-  * 點擊 Add MFA。
-* 完成截圖
-  * <img width="1905" height="938" alt="image" src="https://github.com/user-attachments/assets/ed31daf4-58e2-4732-bd4f-89c0d1fe627e" />
-  * 「現在登入 Root 帳號時，除了輸入 Email 和密碼，還需要從手機 App 取得 6 位數密碼，大幅降低了帳號被盜的風險」。
+1. 進入 IAM 控制台：
+* 在上方搜尋列輸入 IAM 並進入。
+* 在儀表板右側的「Security Status」或「IAM resources」下方，你會看到 「Add MFA for root user」 的警告提示，點擊 Assign MFA。
+2. 選擇設備類型：
+* 選擇 Authenticator app（虛擬 MFA 設備）。這是最方便的做法，不需要買實體硬體。
+* <img width="984" height="769" alt="image" src="https://github.com/user-attachments/assets/f7067189-eb63-4941-b50a-c7cf8f532430" />
+3. 設定 App：
+* 在手機下載 Google Authenticator。
+* 點擊 AWS 上的 Show QR code。
+* 用手機 App 掃描 QR code。
+4. 完成驗證：
+* 手機會出現每 30 秒更換一次的 6 位數字。
+* 在 AWS 畫面上輸入連續產生的兩組驗證碼（MFA code 1 & MFA code 2）。
+* 點擊 Add MFA。
+5. 完成截圖
+* <img width="1905" height="938" alt="image" src="https://github.com/user-attachments/assets/ed31daf4-58e2-4732-bd4f-89c0d1fe627e" />
+* 「現在登入 Root 帳號時，除了輸入 Email 和密碼，還需要從手機 App 取得 6 位數密碼，大幅降低了帳號被盜的風險」。
 
 <br>
 
@@ -115,7 +115,6 @@ AWS 的 Policy 是以 JSON 格式 撰寫的，裡面主要包含以下四個關�
   * Default output format: `json`
 
 #### 第三步：驗證並嘗試存取列表
-
 * 列出 S3 桶子：
 ``` Bash
 aws s3 ls
@@ -136,6 +135,55 @@ aws ec2 describe-instances
 <br>
 
 ### 創建一個 user，名為 `s3_readonly`，並且僅給予其 s3 readonly 的權限，為此 user 創建 credential 並且設定在 aws 內，使用不同的 profile 可以指定用哪個 credential 跟 aws 溝通，驗證方式為嘗試取得 ec2 及 s3 的列表，其中一個會失敗。
+
+這題的核心在於練習 **「最小權限原則」** 以及如何透過 **Profile** 在同一台電腦上切換不同的身分。
+
+#### 第一步：在 IAM 控制台創建受限使用者
+* **建立 User**：
+  * 名稱：`s3_readonly`。
+  * 存取類型：勾選 **「Provide user access to the AWS Management Console」**（選填，但為了實作題建議也幫他建立 Access Key）。
+
+* **設定權限 (Set permissions)**：
+  * 選擇 **「Attach policies directly」**。
+  * 在搜尋框輸入 `S3ReadOnly`，勾選 **`AmazonS3ReadOnlyAccess`**。
+  * **注意：** 不要勾選任何與 EC2 相關的 Policy。
+  * <img width="1458" height="571" alt="image" src="https://github.com/user-attachments/assets/cbcc0586-e9f4-4a39-beaf-295806cfe7de" />
+
+* **產生 Access Key**：
+  * 在該使用者的「Security credentials」分頁下，點擊 **Create access key**。
+  * 選擇 **CLI**，並記錄下這組新的 `Access Key ID` 和 `Secret Access Key`。
+  * <img width="1905" height="877" alt="image" src="https://github.com/user-attachments/assets/ed026e25-2783-40f9-8f0c-9ce0d6437c06" />
+
+#### 第二步：在 CLI 設定新的 Profile
+現在你要教你的電腦認識這個「新身分」，但不能覆蓋掉你原本的管理者權限。
+
+請在終端機輸入：
+```bash
+aws configure --profile s3_user
+```
+
+* **Access Key ID**: 貼上 `s3_readonly` 的金鑰。
+* **Secret Access Key**: 貼上 `s3_readonly` 的私鑰。
+* **Region**: `ap-northeast-1` (或是你原本用的區域)。
+* **Output**: `json`。
+
+#### 第三步：進行驗證（這部分是作業的精華）
+請依序執行以下兩條指令，並觀察差異：
+
+1. **驗證 S3 存取（預期成功）**：
+```bash
+aws s3 ls --profile s3_user
+```
+* *結果：* 應該能正常執行，列出空列表或現有的 Bucket。
+
+2. **驗證 EC2 存取（預期失敗）**：
+```bash
+aws ec2 describe-instances --profile s3_user
+```
+* *結果：* 應該會噴出報錯訊息：`An error occurred (UnauthorizedOperation) when calling the DescribeInstances operation...`。
+
+* 結果圖示
+  * <img width="1113" height="626" alt="image" src="https://github.com/user-attachments/assets/36254f9b-8414-4ef5-9b60-350ee587f284" />
 
 <br>
 
