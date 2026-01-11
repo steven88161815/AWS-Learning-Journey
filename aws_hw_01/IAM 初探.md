@@ -20,17 +20,17 @@
 
 這四個元件的關係可以用一個簡單的公式來理解：「 `誰 (User/Group/Role)` + `透過什麼規則 (Policy)` + 能做什麼事」。
 
-#### 彼此間的關係
-  * **User (使用者)**：代表一個具體的人（例如你）。每個人都有自己的登入帳號與密碼。
+#### 彼此間的關係 
+* **User (使用者)**：代表一個具體的人（例如你）。每個人都有自己的登入帳號與密碼。
 
-  * **Group (使用者群組)**：使用者的集合。你可以把多個 User 丟進同一個 Group。
-    * 關係：你把 Policy 掛在 Group 上，裡面所有的 User 就會自動繼承這些權限，方便大量管理。
+* **Group (使用者群組)**：使用者的集合。你可以把多個 User 丟進同一個 Group。
+  * 關係：你把 Policy 掛在 Group 上，裡面所有的 User 就會自動繼承這些權限，方便大量管理。
 
-  * **Role (角色)**：代表一個虛擬的身分。它沒有固定的密碼或金鑰，而是給「有需要的人或服務」臨時`切換（Assume）`進去使用的。
-    * 關係：User 可以「變身」成某個 Role；EC2 機器也可以「戴上」某個 Role 來獲得權限。
+* **Role (角色)**：代表一個虛擬的身分。它沒有固定的密碼或金鑰，而是給「有需要的人或服務」臨時`切換（Assume）`進去使用的。
+  * 關係：User 可以「變身」成某個 Role；EC2 機器也可以「戴上」某個 Role 來獲得權限。
 
-  * **Policy (策略)**：這是一份純文字文件，規定了「准許」或「拒絕」哪些動作。
-    * 關係：Policy 是靈魂，它必須**附加（Attach）**在 User、Group 或 Role 上，這些身分才會有權限。
+* **Policy (策略)**：這是一份純文字文件，規定了「准許」或「拒絕」哪些動作。
+  * 關係：Policy 是靈魂，它必須**附加（Attach）**在 User、Group 或 Role 上，這些身分才會有權限。
 
 | 實體 (Entity) | 是否能直接附加 Policy？ | 是否能加入 Group？ |
 | :----: | :----: | :----: |
@@ -69,7 +69,57 @@ AWS 的 Policy 是以 JSON 格式 撰寫的，裡面主要包含以下四個關�
 ## 【實作題】
 
 ### 為 root account 創建 MFA 登入。
+
+* 進入 IAM 控制台：
+  * 在上方搜尋列輸入 IAM 並進入。
+  * 在儀表板右側的「Security Status」或「IAM resources」下方，你會看到 「Add MFA for root user」 的警告提示，點擊 Assign MFA。
+* 選擇設備類型：
+  * 選擇 Authenticator app（虛擬 MFA 設備）。這是最方便的做法，不需要買實體硬體。
+  * <img width="984" height="769" alt="image" src="https://github.com/user-attachments/assets/f7067189-eb63-4941-b50a-c7cf8f532430" />
+* 設定 App：
+  * 在手機下載 Google Authenticator。
+  * 點擊 AWS 上的 Show QR code。
+  * 用手機 App 掃描 QR code。
+* 完成驗證：
+  * 手機會出現每 30 秒更換一次的 6 位數字。
+  * 在 AWS 畫面上輸入連續產生的兩組驗證碼（MFA code 1 & MFA code 2）。
+  * 點擊 Add MFA。
+* 完成截圖
+  * <img width="1905" height="938" alt="image" src="https://github.com/user-attachments/assets/ed31daf4-58e2-4732-bd4f-89c0d1fe627e" />
+  * 「現在登入 Root 帳號時，除了輸入 Email 和密碼，還需要從手機 App 取得 6 位數密碼，大幅降低了帳號被盜的風險」。
+
+<br>
+
+---
+
+<br>
+
 ### 創建 aws credential（access key & secret），並且使用 aws cli 嘗試存取 ec2 列表（可以手動創建一台機器）及 s3 列表。
+
+Access Key 和 Secret Access Key 就像是你的身份證與密碼的「電腦版」，專門給程式（如 AWS CLI）使用。
+
+
+
+<br>
+
+---
+
+<br>
+
 ### 創建一個 user，名為 `s3_readonly`，並且僅給予其 s3 readonly 的權限，為此 user 創建 credential 並且設定在 aws 內，使用不同的 profile 可以指定用哪個 credential 跟 aws 溝通，驗證方式為嘗試取得 ec2 及 s3 的列表，其中一個會失敗。
+
+<br>
+
+---
+
+<br>
+
 ### 嘗試創建 inline policy，使 s3_readonly 這個使用者在某個時間後就無法存取 s3，並且回答 inline policy 可以用在哪些地方。
+
+<br>
+
+---
+
+<br>
+
 ### 嘗試創建 EC2，並且為其創建一個 S3ReadOnlyRole 的 role，使 ec2 上可以使用 aws cli（或是 sdk） 存取 s3 資源，並且不需要設定 access key。（這題可以用 aws linux，因為他有內建 aws cli）
