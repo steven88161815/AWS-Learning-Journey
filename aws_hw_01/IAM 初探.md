@@ -126,7 +126,8 @@ aws ec2 describe-instances
 ```
 
 * 結果圖示
-  * <img width="1113" height="626" alt="image" src="https://github.com/user-attachments/assets/5d4ef393-d0ad-472e-b4a9-2bcd130b02d4" />
+  * <img width="1113" height="626" alt="image" src="https://github.com/user-attachments/assets/adc92837-b07c-40a2-b56d-02ae2f71dfc9" />
+
  
 <br>
 
@@ -183,7 +184,8 @@ aws ec2 describe-instances --profile s3_user
 * 結果：應該會噴出報錯訊息：`An error occurred (UnauthorizedOperation) when calling the DescribeInstances operation...`。
 
 * 結果圖示
-  * <img width="1113" height="626" alt="image" src="https://github.com/user-attachments/assets/36254f9b-8414-4ef5-9b60-350ee587f284" />
+  * <img width="1113" height="626" alt="image" src="https://github.com/user-attachments/assets/befef263-966d-4683-aabe-481b7e54d66f" />
+
 
 <br>
 
