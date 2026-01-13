@@ -1,12 +1,16 @@
 ## 【問答題】
 
 ### 1. root user 跟 iam user 的差別？
-
 | 特性 | Root User | IAM User |
 | :----: | :----: | :----: |
 | 如何創建 | 註冊 AWS 帳號時使用的 Email。 | 由 Root User 或管理者在 IAM 頁面手動建立。 |
 | 權限範圍 | **無限制**。擁有帳號內所有資源、帳單與關閉帳號的最高權限。 | **預設無權限**。必須被賦予 Policy 才能執行特定動作。 |
 | 安全性 | 非常危險。若外洩，整個帳號都會被掌控。 | 相對安全。遵循「最小權限原則」，外洩時影響有限。 |
+
+#### 資源所有權 (Resource Ownership)
+* **歸屬權**：不論是 Root 還是 IAM User 建立的資源（EC2, S3...），其所有權永遠屬於「Root Account（AWS 帳號本身）」，而非建立者個人。
+* **管理邏輯**：IAM User 只是代表帳號執行動作的「代理人」。這確保了人員離職、刪除 IAM User 時，公司部署的服務（資源）不會跟著消失。
+* 費用歸屬：所有資源產生的帳單，統一由 Root Account 綁定的支付方式支付。
 
 <br>
 
@@ -15,7 +19,6 @@
 <br>
 
 ### 2. user, group, role, policy 彼此間的關係為何？policy 的格式為何？
-
 <img width="2878" height="1620" alt="image" src="https://github.com/user-attachments/assets/494aefd0-9ecf-40d6-ae76-9ad8c37e32b2" />
 
 這四個元件的關係可以用一個簡單的公式來理解：「 `誰 (User/Group/Role)` + `透過什麼規則 (Policy)` + 能做什麼事」。
@@ -39,7 +42,6 @@
 | Role (角色) | 可以，這是賦予 Role 權限的唯一方式。 | 不可以（Role 不能加入 Group）。 |
 
 #### Policy 的格式 (JSON)
-
 AWS 的 Policy 是以 JSON 格式 撰寫的，裡面主要包含以下四個關鍵字：
 
 ``` JSON
@@ -69,7 +71,6 @@ AWS 的 Policy 是以 JSON 格式 撰寫的，裡面主要包含以下四個關�
 ## 【實作題】
 
 ### 1. 為 root account 創建 MFA 登入。
-
 1. 進入 IAM 控制台：
 * 在上方搜尋列輸入 IAM 並進入。
 * 在儀表板右側的「Security Status」或「IAM resources」下方，你會看到 「Add MFA for root user」 的警告提示，點擊 Assign MFA。
@@ -95,7 +96,6 @@ AWS 的 Policy 是以 JSON 格式 撰寫的，裡面主要包含以下四個關�
 <br>
 
 ### 2. 創建 aws credential（access key & secret），並且使用 aws cli 嘗試存取 ec2 列表（可以手動創建一台機器）及 s3 列表。
-
 `Access Key` 和 `Secret Access Key` 就像是你的身份證與密碼的「電腦版」，專門給程式（如 AWS CLI）使用。
 
 #### 第一步：創建 Access Key (在網頁上)
@@ -136,7 +136,6 @@ aws ec2 describe-instances
 <br>
 
 ### 3. 創建一個 user，名為 `s3_readonly`，並且僅給予其 s3 readonly 的權限，為此 user 創建 credential 並且設定在 aws 內，使用不同的 profile 可以指定用哪個 credential 跟 aws 溝通，驗證方式為嘗試取得 ec2 及 s3 的列表，其中一個會失敗。
-
 這題的核心在於練習 **「最小權限原則」** 以及如何透過 **Profile** 在同一台電腦上切換不同的身分。
 
 #### 第一步：在 IAM 控制台創建受限使用者
@@ -186,6 +185,7 @@ aws ec2 describe-instances --profile s3_user
 * 結果圖示
   * <img width="1113" height="626" alt="image" src="https://github.com/user-attachments/assets/befef263-966d-4683-aabe-481b7e54d66f" />
 
+* **重點釐清**： 雖然我們是用 s3_readonly 這個 IAM User 的身分去執行指令，但看到的 S3 Bucket 是屬於 Root Account 的。
 
 <br>
 
@@ -194,11 +194,9 @@ aws ec2 describe-instances --profile s3_user
 <br>
 
 ### 4. 嘗試創建 inline policy，使 s3_readonly 這個使用者在某個時間後就無法存取 s3，並且回答 inline policy 可以用在哪些地方。
-
 從「現成的 Policy」進階到「手動客製化 Policy」，並且加入**時間限制**這個進階條件。
 
 #### 什麼是 Inline Policy？
-
 * **定義**：Inline Policy（內嵌策略）是直接嵌入在某個 User、Group 或 Role 中的 Policy。它與該身分是「共生」的，如果你刪除了該 User，這筆 Policy 也會跟著消失。
 * **可以用在哪裡？**：
   * **特定單一使用者**：當某個權限非常特殊，且你確定不會給其他人用時。
@@ -206,7 +204,6 @@ aws ec2 describe-instances --profile s3_user
   * **強一致性**：確保身分與權限綁死，不會因為有人修改了外部的 Managed Policy 而受影響。
 
 #### 實作步驟：讓 `s3_readonly` 在特定時間後失效
-
 1. **移除原有的 Managed Policy**
 
 在進行時間限制測試前，必須先拿掉原本的「永久通行證」。
@@ -267,7 +264,6 @@ aws ec2 describe-instances --profile s3_user
 <br>
 
 ### 5. 嘗試創建 EC2，並且為其創建一個 S3ReadOnlyRole 的 role，使 ec2 上可以使用 aws cli（或是 sdk） 存取 s3 資源，並且不需要設定 access key。（這題可以用 aws linux，因為他有內建 aws cli）
-
 這題是 IAM 實作中最精華的部分，它介紹了 **「IAM Role (角色)」** 如何讓 AWS 資源（如 EC2）之間進行**無金鑰**（Keyless）的安全通訊。
 
 這題的重點是：**不要在 EC2 裡面設定 Access Key**。我們改用「賦予身分」的方式讓 EC2 具備權限。
@@ -275,7 +271,6 @@ aws ec2 describe-instances --profile s3_user
 ---
 
 #### 第一步：創建 IAM Role
-
 首先，我們要建立一個專門給 EC2 穿的「制服」。
 
 1. 進入 **IAM 控制台**，點擊左側 **Roles**  **Create role**。
@@ -287,7 +282,6 @@ aws ec2 describe-instances --profile s3_user
 
 
 #### 第二步：創建 EC2 並關聯 Role
-
 1. 進入 **EC2 控制台**，點擊 **Launch instance**。
 2. **設定規格**：選擇 Amazon Linux 2023（內建已安裝 AWS CLI）。
 3. **關鍵設定 (Advanced details)**：
@@ -300,7 +294,6 @@ aws ec2 describe-instances --profile s3_user
 
 
 #### 第三步：驗證（不設定 Access Key）
-
 * 透過 SSH 或 **Instance Connect** 登入你的 EC2。
 ```bash
 ssh -i C:\Users\Steven\Downloads\aws-0111.pem ec2-user@35.77.99.8
