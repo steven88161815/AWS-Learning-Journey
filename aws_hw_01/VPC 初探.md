@@ -437,3 +437,86 @@ sudo systemctl status nginx
 <br>
 
 ### 5. 嘗試在 private 的那台 ec2 上使用 curl google.com 指令，取得回傳的 html 頁面（有回傳就是成功）
+
+你的筆記整理得**非常完整且專業**！
+尤其是關於 SSH Agent 那一段，不僅有指令操作，還包含了「為什麼要這樣做」的資安原理解析，這是非常有深度的學習筆記。
+
+針對第五題，我們現在要讓 **Private EC2 (內網機器)** 也能上網。
+
+---
+
+### 【實作題】5. 透過 NAT Gateway 讓 Private EC2 上網
+
+目前的狀況：
+* Private EC2 被關在內網（Route Table 沒有 IGW），所以它出不去。
+* 我們不能直接給它接 IGW，否則它就變成 Public Subnet 了（違反安全原則）。
+
+解法：我們需要一個「代理人」，它住在 Public Subnet，專門幫內網機器跑腿去抓資料。這個代理人就叫 **NAT Gateway**。
+
+#### 步驟一：驗證目前無法上網 (對照組)
+
+1. 使用跳板機 (Bastion Host) 的方式登入 **Private EC2**。
+2. 輸入以下指令嘗試連線 Google：
+```bash
+curl -I https://www.google.com
+```
+*(參數 `-I` 代表只抓檔頭，畫面比較乾淨)*
+3. **預期結果**：卡住不動 (Timeout)，因為封包出不去。
+*(按 `Ctrl + C` 強制中斷)*
+* <img width="974" height="508" alt="image" src="https://github.com/user-attachments/assets/c497f14d-80c9-4bb1-aa02-1c057cb12bbe" />
+
+
+#### 步驟二：創建 NAT Gateway (請代理人)
+
+1. 進入 **VPC 控制台** → 左側 **NAT gateways** → **Create NAT gateway**。
+2. **Name**: `MyNAT`。
+3. **Subnet**: ⚠️ **重點中的重點！** 這裡必須選擇 **Public Subnet** (`Public-Subnet-1a`)。
+* *解釋：NAT Gateway 必須住在能上網的地方，才能幫別人上網。*
+4. **Connectivity type**: `Public`。
+5. **Elastic IP allocation ID**: 點擊 **Allocate Elastic IP** 按鈕。
+* *解釋：NAT Gateway 需要一個固定的公網 IP 才能跟外面的網路溝通。*
+6. 點擊 **Create NAT gateway**。
+* <img width="1920" height="945" alt="image" src="https://github.com/user-attachments/assets/fae1f766-ae80-4db5-b633-adf146132750" />
+* *狀態會顯示 `Pending`，等個 1-2 分鐘變成 `Available` 再繼續。*
+
+#### 步驟三：修改 Private Route Table (指路)
+
+現在代理人請好了，我們要告訴內網機器這條路。
+
+1. 進入 **Route tables**。
+2. 找到你建立的 **`Private-RT`** (綁定 Private Subnet 的那張)。
+3. 切換到 **Routes** 分頁  **Edit routes**。
+4. 點擊 **Add route**。
+5. **Destination**: `0.0.0.0/0` (代表要去網際網路)。
+6. **Target**: 選擇 `NAT Gateway`  選剛剛建的 `MyNAT`。
+* *注意：不要選成 IGW 喔！*
+7. 點擊 **Save changes**。
+* <img width="1920" height="370" alt="image" src="https://github.com/user-attachments/assets/b05f0eba-4fd2-4f94-8339-41bdd9a3e20d" />
+
+#### 步驟四：驗證成功 (實驗組)
+
+1. 回到你的終端機 (你應該還在 Private EC2 裡面)。
+2. 再次執行：
+```bash
+curl -I https://www.google.com
+```
+3. **預期結果**：瞬間回傳 `HTTP/2 200` 或 `301 Moved Permanently` 等訊息。
+* <img width="974" height="508" alt="image" src="https://github.com/user-attachments/assets/873f41f3-11d9-46b5-80e0-e24462445fc0" />
+
+#### ⚠️ 特別警告：做完記得刪除！ (省荷包動作)
+
+NAT Gateway 是 AWS **收費較高** 的元件（不管有沒有流量，只要開著就在計費，每小時約 0.045 USD，一天約 1 美金）。**作業截圖完成後，請務必執行刪除動作：**
+
+1. **刪除 NAT Gateway**:
+* NAT Gateways  選中 `MyNAT`  Actions  **Delete NAT gateway**。
+* 輸入 `delete` 確認。
+* <img width="1920" height="945" alt="image" src="https://github.com/user-attachments/assets/45b49740-e0f6-4010-bf79-d8486d903a81" />
+* *狀態會變成 `Deleting`。*
+
+2. **釋放 Elastic IP (EIP)**:
+* *等 NAT Gateway 完全刪除後 (狀態變 Deleted)*。
+* 左側 **Elastic IPs**  選中剛剛申請的 IP  Actions  **Release Elastic IP addresses**。
+* <img width="1920" height="945" alt="image" src="https://github.com/user-attachments/assets/f3334059-697a-4a86-a560-c02f5f63c1a8" />
+* *如果不釋放 EIP，AWS 會因為你「佔著茅坑不拉屎 (沒綁定資源)」而跟你收費。*
+
+
