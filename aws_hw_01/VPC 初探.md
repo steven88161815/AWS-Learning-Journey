@@ -126,6 +126,87 @@
 
 ### 2. 承第一題，為該兩個 subnet 分別創建一個 route table，使其成為 public 跟 private subnet。
 
+這題的關鍵在於理解一個 AWS 的核心定義：
+
+> **什麼叫做 Public Subnet？**
+> 答案：只要一個 Subnet 的 Route Table 有一條路指向 **Internet Gateway (IGW)**，它就自動變身為 Public Subnet。
+
+反之，如果沒有指向 IGW，它就是 Private Subnet。
+
+#### 實作步驟流程
+
+我們需要做三件事：
+
+1. **建大門**：創建 Internet Gateway (IGW) 並裝到 VPC 上。
+2. **設定 Public 路由**：建立一張表，指引去大門的路，並綁定給 Subnet 1。
+3. **設定 Private 路由**：建立一張表，不指引去大門（只在內部互通），綁定給 Subnet 2。
+
+#### 第一步：創建並附加 Internet Gateway (IGW)
+
+沒有大門，路由表指去哪裡都沒用。
+
+1. 在左側選單點擊 **Internet gateways** → **Create internet gateway**。
+2. **Name tag**: `MyIGW`。
+3. 點擊 **Create internet gateway**。
+* <img width="1920" height="454" alt="image" src="https://github.com/user-attachments/assets/2dae35e2-8dde-4966-810a-14391e291b4d" />
+4. **附加到 VPC**：
+* 剛建好時狀態是 `Detached` (未附加)。
+* 點擊右上角的 **Actions**  **Attach to VPC**。
+* 選擇 `MyVPC`，點擊 **Attach internet gateway**。
+* <img width="1920" height="372" alt="image" src="https://github.com/user-attachments/assets/ba306eb9-25b5-4e42-a647-d25b2f799f8b" />
+
+#### 第二步：創建 Public Route Table
+
+1. 在左側選單點擊 **Route tables** → **Create route table**。
+2. **設定基本資料**：
+* **Name**: `Public-RT`。
+* **VPC**: 選擇 `MyVPC`。
+* 點擊 **Create route table**。
+* <img width="1920" height="517" alt="image" src="https://github.com/user-attachments/assets/d040cdfd-cc64-4490-98d0-a4f56f77ace5" />
+
+3. **編輯路由 (加路標)**：
+* 進入剛剛建好的 `Public-RT`，切換到 **Routes** 分頁  **Edit routes**。
+* 點擊 **Add route**。
+* **Destination**: 輸入 `0.0.0.0/0` (代表全世界所有 IP)。
+* **Target**: 選擇 `Internet Gateway`  選剛剛建的 `MyIGW`。
+* 點擊 **Save changes**。
+* <img width="1920" height="385" alt="image" src="https://github.com/user-attachments/assets/69c9088d-0546-4cb7-a52a-86ac6dca2bf0" />
+
+4. **關聯 Subnet (指定生效範圍)**：
+* 切換到 **Subnet associations** 分頁  **Edit subnet associations**。
+* <img width="1920" height="945" alt="image" src="https://github.com/user-attachments/assets/141932ad-b722-4c39-bb2a-09eafcc9eeea" />
+* 勾選 `Public-Subnet-1a` (我們說好這個要當 Public 的)。
+* 點擊 **Save associations**。
+* <img width="1920" height="438" alt="image" src="https://github.com/user-attachments/assets/dcbf6fb4-673b-464c-a30d-e36a28e72d4e" />
+
+#### 第三步：創建 Private Route Table
+
+1. 再次點擊 **Create route table**。
+2. **設定基本資料**：
+* **Name**: `Private-RT`。
+* **VPC**: 選擇 `MyVPC`。
+* 點擊 **Create route table**。
+* <img width="1920" height="517" alt="image" src="https://github.com/user-attachments/assets/c9a4bd63-786c-4aac-95ff-4de77ea332a1" />
+3. **編輯路由**：
+* **不需要加 IGW**。預設只有一條 `10.0.0.0/18 local`，這代表「VPC 內部互通」，這樣就夠了。
+4. **關聯 Subnet**：
+* 切換到 **Subnet associations** 分頁  **Edit subnet associations**。
+* <img width="1920" height="945" alt="image" src="https://github.com/user-attachments/assets/2d3a7f28-c8a2-446d-9bb4-5cf0df236b8a" />
+* 勾選 `Private-Subnet-1c`。
+* 點擊 **Save associations**。
+* <img width="1920" height="438" alt="image" src="https://github.com/user-attachments/assets/96b7a3f2-9b91-44e2-ae93-39baa7a1be1b" />
+
+#### 📝 對照表
+
+| 路由表名稱 | 關聯的 Subnet | 有無 `0.0.0.0/0` 指向 IGW? | 用途 |
+| --- | --- | --- | --- |
+| **Public-RT** | `Public-Subnet-1a` | **有** | 讓機器可以直接擁有公網 IP 上網。 |
+| **Private-RT** | `Private-Subnet-1c` | **無** (只有 local) | 機器藏在內網，外面連不進來。 |
+
+
+* 結果圖示
+  * <img width="1920" height="699" alt="image" src="https://github.com/user-attachments/assets/6aa190f3-d8ca-431c-8ce2-d3524bbb6c4d" />
+ 
 <br>
 
 ---
