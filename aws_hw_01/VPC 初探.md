@@ -152,7 +152,6 @@
 * **VPC**: 選擇 `MyVPC`。
 * 點擊 **Create route table**。
 * <img width="1920" height="517" alt="image" src="https://github.com/user-attachments/assets/d040cdfd-cc64-4490-98d0-a4f56f77ace5" />
-
 3. **編輯路由 (加路標)**：
 * 進入剛剛建好的 `Public-RT`，切換到 **Routes** 分頁  **Edit routes**。
 * 點擊 **Add route**。
@@ -160,7 +159,6 @@
 * **Target**: 選擇 `Internet Gateway`  選剛剛建的 `MyIGW`。
 * 點擊 **Save changes**。
 * <img width="1920" height="385" alt="image" src="https://github.com/user-attachments/assets/69c9088d-0546-4cb7-a52a-86ac6dca2bf0" />
-
 4. **關聯 Subnet (指定生效範圍)**：
 * 切換到 **Subnet associations** 分頁  **Edit subnet associations**。
 * <img width="1920" height="945" alt="image" src="https://github.com/user-attachments/assets/141932ad-b722-4c39-bb2a-09eafcc9eeea" />
@@ -443,7 +441,6 @@ curl -I https://www.google.com
 3. **預期結果**：卡住不動 (Timeout)，因為封包出不去。
 *(按 `Ctrl + C` 強制中斷)*
 * <img width="974" height="508" alt="image" src="https://github.com/user-attachments/assets/c497f14d-80c9-4bb1-aa02-1c057cb12bbe" />
-
 
 #### 步驟二：創建 NAT Gateway (請代理人)
 
