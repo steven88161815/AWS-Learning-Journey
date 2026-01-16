@@ -152,8 +152,8 @@ aws ec2 describe-instances
 
 * **產生 Access Key**：
   * 在該使用者的「Security credentials」分頁下，點擊 **Create access key**。
+  * <img width="1905" height="877" alt="image" src="https://github.com/user-attachments/assets/589ad6d5-ae05-44bc-a971-b8104924fa00" />
   * 選擇 **CLI**，並記錄下這組新的 `Access Key ID` 和 `Secret Access Key`。
-  * <img width="1905" height="877" alt="image" src="https://github.com/user-attachments/assets/ed026e25-2783-40f9-8f0c-9ce0d6437c06" />
 
 #### 第二步：在 CLI 設定新的 Profile
 現在你要教你的電腦認識這個「新身分」，但不能覆蓋掉你原本的管理者權限。
@@ -301,7 +301,7 @@ ssh -i C:\Users\Steven\Downloads\aws-0111.pem ec2-user@35.77.99.8
 ```
 
 * **直接執行指令**（千萬不要下 `aws configure`）：
-```cmd
+```bash
 aws s3 ls
 ```
 
@@ -309,7 +309,6 @@ aws s3 ls
 
 * 結果圖示
   * <img width="1130" height="626" alt="image" src="https://github.com/user-attachments/assets/3159d9e0-cf0e-469d-8ec2-eafc1945287c" />
-
 
 
 
