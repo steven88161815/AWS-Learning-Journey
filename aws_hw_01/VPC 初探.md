@@ -427,15 +427,6 @@ sudo systemctl status nginx
 
 ### 5. 嘗試在 private 的那台 ec2 上使用 curl google.com 指令，取得回傳的 html 頁面（有回傳就是成功）
 
-你的筆記整理得**非常完整且專業**！
-尤其是關於 SSH Agent 那一段，不僅有指令操作，還包含了「為什麼要這樣做」的資安原理解析，這是非常有深度的學習筆記。
-
-針對第五題，我們現在要讓 **Private EC2 (內網機器)** 也能上網。
-
----
-
-### 【實作題】5. 透過 NAT Gateway 讓 Private EC2 上網
-
 目前的狀況：
 * Private EC2 被關在內網（Route Table 沒有 IGW），所以它出不去。
 * 我們不能直接給它接 IGW，否則它就變成 Public Subnet 了（違反安全原則）。
