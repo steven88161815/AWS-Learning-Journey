@@ -57,17 +57,6 @@
   * **功能**：**單向通行 (Outbound only)**。內部的機器想去 Google 下載更新，把請求交給 NAT Gateway 幫忙抓回來；但外面的駭客無法主動穿過 NAT Gateway 連進來。
   * **應用**：放在 **Public Subnet** 裡，專門服務 Private Subnet 的機器。
 
-#### 結構圖
-
-* **Region (東京)**
-  * **VPC (你的總公司)**
-    * **IGW (大門)**
-    * **AZ (A 棟)**
-      * **Subnet 1 (業務部)**  配有 Route Table (指路牌)
-    * **AZ (C 棟)**
-      * **Subnet 2 (研發部)**  配有 Route Table (指路牌)
-    * **NAT Gateway (總機小姐)**  雖然住在 A 棟的業務部，但專門幫 C 棟的研發部買東西。
-
 <br>
 
 ---
@@ -81,7 +70,7 @@
 
 這題的目標是規劃出一個私有的網路空間，並將其切割成兩個不同用途的區塊。
 
-#### 第一步：創建 VPC (大蛋糕)**
+#### 第一步：創建 VPC (大蛋糕)
 
 1. 確認右上角區域選在 **Tokyo (ap-northeast-1)**。
 2. 進入 **VPC** 控制台，點擊 **Create VPC**。
@@ -92,7 +81,7 @@
 6. 點擊 **Create VPC**。
 * <img width="1920" height="945" alt="image" src="https://github.com/user-attachments/assets/a4107a81-f55c-4263-98b0-cd8ec6abc6ff" />
 
-#### 第二步：創建兩個 Subnet (切小塊)**
+#### 第二步：創建兩個 Subnet (切小塊)
 
 我們要切出兩個 `/20` 大小的隔間，並且故意放在不同的 AZ 以分散風險。
 
@@ -312,7 +301,7 @@ ssh -A ec2-user@<Public-EC2-IP>
 ```
 
 * **從 Public EC2 跳轉至 Private EC2**
-登入 Public EC2 後，直接輸入 SSH 指令連線到 Private IP。**注意：此時不需要再指定 `-i key.pem**`，因為它會自動回頭問你筆電裡的 Agent 要鑰匙。
+登入 Public EC2 後，直接輸入 SSH 指令連線到 Private IP。**注意：此時不需要再指定 `-i key.pem`**，因為它會自動回頭問你筆電裡的 Agent 要鑰匙。
 ```bash
 ssh ec2-user@<Private-EC2-IP>
 ```
