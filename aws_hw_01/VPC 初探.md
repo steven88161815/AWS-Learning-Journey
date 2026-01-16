@@ -197,7 +197,6 @@
 | **Public-RT** | `Public-Subnet-1a` | **有** | 讓機器可以直接擁有公網 IP 上網。 |
 | **Private-RT** | `Private-Subnet-1c` | **無** (只有 local) | 機器藏在內網，外面連不進來。 |
 
-
 * 結果圖示
   * <img width="1920" height="699" alt="image" src="https://github.com/user-attachments/assets/6aa190f3-d8ca-431c-8ce2-d3524bbb6c4d" />
  
