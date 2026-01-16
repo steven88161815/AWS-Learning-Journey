@@ -313,7 +313,7 @@ ssh -A ec2-user@<Public-EC2-IP>
 
 * **從 Public EC2 跳轉至 Private EC2**
 登入 Public EC2 後，直接輸入 SSH 指令連線到 Private IP。**注意：此時不需要再指定 `-i key.pem**`，因為它會自動回頭問你筆電裡的 Agent 要鑰匙。
-```cmd
+```bash
 ssh ec2-user@<Private-EC2-IP>
 ```
 
@@ -371,6 +371,64 @@ ssh ec2-user@<Private-EC2-IP>
 <br>
 
 ### 4. 在 public ec2 上安裝 nginx，並且使用瀏覽器輸入 public ip，取得 nginx 的網頁頁面後截圖。
+
+#### 步驟一：登入 Public EC2
+
+* 使用你的終端機（CMD 或 PowerShell），登入那台有公網 IP 的 Public EC2。
+* (這題不需要 `-A`，因為我們不用跳板，只是要裝軟體)
+```cmd
+ssh -i "路徑\key.pem" ec2-user@<你的-Public-IP>
+```
+
+#### 步驟二：安裝並啟動 Nginx
+
+因為你選的是 **Amazon Linux 2023**，指令如下（一行一行複製執行）：
+
+1. **更新系統套件**：
+```bash
+sudo dnf update -y
+```
+2. **安裝 Nginx**：
+```bash
+sudo dnf install nginx -y
+```
+3. **啟動 Nginx 服務**：
+```bash
+sudo systemctl start nginx
+```
+4. **設定開機自動啟動**（選做，好習慣）：
+```bash
+sudo systemctl enable nginx
+```
+5. **檢查狀態**（看到綠色的 active running 代表成功）：
+```bash
+sudo systemctl status nginx
+```
+* <img width="1113" height="626" alt="image" src="https://github.com/user-attachments/assets/9bb02cf3-ecb5-4203-be83-a429db5c6312" />
+
+#### 步驟三：修改 Security Group (⚠️ 這是陷阱題！)
+
+現在 Nginx 已經跑起來了，但如果你直接用瀏覽器開 IP，你會發現圈圈轉很久然後連不上。
+* <img width="1920" height="990" alt="image" src="https://github.com/user-attachments/assets/b34bf67e-7d47-4a5c-a03c-a847f981de5f" />
+> **Q: 為什麼 Nginx 裝好了，瀏覽器卻連不上？**
+> **A:** 因為 EC2 的防火牆 (Security Group) 預設是拒絕所有連線的。在第 3 題建立的 Security Group (`Allow-SSH`) **只有開 Port 22**，沒開 Port 80 (HTTP)。我們必須手動在 Inbound Rules 新增 **HTTP (Port 80)** 的規則，外面的瀏覽器才進得來。
+
+回到 AWS Console 操作：
+1. 進入 **EC2 控制台**  左側 **Security Groups**。
+2. 找到你綁定給 Public EC2 的那個群組（名字應該叫 `Allow-SSH` 或你剛剛取的）。
+3. 點擊下方的 **Inbound rules** → **Edit inbound rules**。
+* <img width="1920" height="945" alt="image" src="https://github.com/user-attachments/assets/6c9cc11c-490a-49d4-a4c4-71e2b6baa369" />
+4. 點擊 **Add rule**：
+* **Type**: 選擇 `HTTP` (它會自動帶入 Port 80)。
+* **Source**: 選擇 `Anywhere-IPv4` (`0.0.0.0/0`)。
+5. 點擊 **Save rules**。
+* <img width="1920" height="438" alt="image" src="https://github.com/user-attachments/assets/66ad9078-42ee-4048-825e-5597f45631b6" />
+
+#### 步驟四：瀏覽器驗證與截圖
+
+1. 打開 Chrome 或 Edge。
+2. 在網址列輸入：`http://<你的-Public-IP>` (注意是 http 不是 https)。
+* <img width="1920" height="990" alt="image" src="https://github.com/user-attachments/assets/aeeaaa43-645a-4a1f-b304-8026ee4d0680" />
 
 <br>
 
