@@ -270,7 +270,7 @@
 
 * 取得 Public EC2 的 Public IP (例如 `54.x.x.x`)。
 * 在你的終端機執行：
-```bash
+```cmd
 ssh -i "path/to/VPC-Lab-Key.pem" ec2-user@54.x.x.x
 ```
 * 結果圖示
@@ -313,7 +313,7 @@ ssh -A ec2-user@<Public-EC2-IP>
 
 * **從 Public EC2 跳轉至 Private EC2**
 登入 Public EC2 後，直接輸入 SSH 指令連線到 Private IP。**注意：此時不需要再指定 `-i key.pem**`，因為它會自動回頭問你筆電裡的 Agent 要鑰匙。
-```bash
+```cmd
 ssh ec2-user@<Private-EC2-IP>
 ```
 
