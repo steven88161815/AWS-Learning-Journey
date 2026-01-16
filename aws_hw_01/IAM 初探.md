@@ -117,12 +117,12 @@ AWS 的 Policy 是以 JSON 格式 撰寫的，裡面主要包含以下四個關�
 
 #### 第三步：驗證並嘗試存取列表
 * 列出 S3 桶子：
-``` Bash
+``` cmd
 aws s3 ls
 ```
 
 * 列出 EC2 列表：
-``` Bash
+``` cmd
 aws ec2 describe-instances
 ```
 
@@ -159,7 +159,7 @@ aws ec2 describe-instances
 現在你要教你的電腦認識這個「新身分」，但不能覆蓋掉你原本的管理者權限。
 
 請在終端機輸入：
-```bash
+```cmd
 aws configure --profile s3_user
 ```
 
@@ -172,13 +172,13 @@ aws configure --profile s3_user
 請依序執行以下兩條指令，並觀察差異：
 
 1. **驗證 S3 存取（預期成功）**：
-```bash
+```cmd
 aws s3 ls --profile s3_user
 ```
 * 結果：應該能正常執行，列出空列表或現有的 Bucket。
 
 2. **驗證 EC2 存取（預期失敗）**：
-```bash
+```cmd
 aws ec2 describe-instances --profile s3_user
 ```
 * 結果：應該會噴出報錯訊息：`An error occurred (UnauthorizedOperation) when calling the DescribeInstances operation...`。
@@ -296,12 +296,12 @@ aws ec2 describe-instances --profile s3_user
 
 #### 第三步：驗證（不設定 Access Key）
 * 透過 SSH 或 **Instance Connect** 登入你的 EC2。
-```bash
+```cmd
 ssh -i C:\Users\Steven\Downloads\aws-0111.pem ec2-user@35.77.99.8
 ```
 
 * **直接執行指令**（千萬不要下 `aws configure`）：
-```bash
+```cmd
 aws s3 ls
 ```
 
