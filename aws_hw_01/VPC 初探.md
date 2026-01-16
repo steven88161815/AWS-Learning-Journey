@@ -51,13 +51,11 @@
   * **功能**：支援 **雙向通行**。外面的客人可以進來（如果有開權限），裡面的人也可以出去。
   * **應用**：Public Subnet 的 Route Table 必須指向它，EC2 才能變成 Public EC2。
 
-
 * **NAT Gateway**
   * **定義**：讓 Private Subnet 的機器可以「單向」連線到網際網路的裝置。
   * **比喻**：辦公室的 **「總機小姐」** 或 **「代購人員」**。
   * **功能**：**單向通行 (Outbound only)**。內部的機器想去 Google 下載更新，把請求交給 NAT Gateway 幫忙抓回來；但外面的駭客無法主動穿過 NAT Gateway 連進來。
   * **應用**：放在 **Public Subnet** 裡，專門服務 Private Subnet 的機器。
-
 
 #### 結構圖
 
@@ -70,4 +68,84 @@
       * **Subnet 2 (研發部)**  配有 Route Table (指路牌)
     * **NAT Gateway (總機小姐)**  雖然住在 A 棟的業務部，但專門幫 C 棟的研發部買東西。
 
+<br>
 
+---
+
+<br>
+
+## 【實作題】
+
+### 1. 在東京 region，嘗試創建一個 VPC，其 CIDR 為 10.0.0.0/18，為其創建兩個 subnet 並且其遮罩長度為 20，並且位於不同的 zone，且提供該兩個 subnet 的 CIDR。
+
+
+這題的目標是規劃出一個私有的網路空間，並將其切割成兩個不同用途的區塊。
+
+#### 第一步：創建 VPC (大蛋糕)**
+
+1. 確認右上角區域選在 **Tokyo (ap-northeast-1)**。
+2. 進入 **VPC** 控制台，點擊 **Create VPC**。
+3. 選擇 **VPC only** (手動建，學習效果最好)。
+4. **Name tag**: `MyVPC`。
+5. **IPv4 CIDR**: 輸入 `10.0.0.0/18`。
+* *解釋：`/18` 代表這個 VPC 總共有 16,384 個 IP 可用。*
+6. 點擊 **Create VPC**。
+* <img width="1920" height="945" alt="image" src="https://github.com/user-attachments/assets/a4107a81-f55c-4263-98b0-cd8ec6abc6ff" />
+
+#### 第二步：創建兩個 Subnet (切小塊)**
+
+我們要切出兩個 `/20` 大小的隔間，並且故意放在不同的 AZ 以分散風險。
+
+1. 點擊左側 **Subnets**  **Create subnet**。
+2. **VPC ID**: 選擇剛剛建立的 `MyVPC`。
+3. **建立第一個 Subnet (未來當 Public 用)**:
+* **Subnet name**: `Public-Subnet-1a` (建議名稱帶上 AZ)。
+* **Availability Zone**: 選 `ap-northeast-1a`。
+* **IPv4 CIDR block**: 輸入 `10.0.0.0/20`。
+4. 點擊 **Add new subnet** 按鈕（繼續建第二個）。
+* <img width="1920" height="945" alt="image" src="https://github.com/user-attachments/assets/6020c7ca-946e-4ef9-95e3-1d31eef73866" /> 
+5. **建立第二個 Subnet (未來當 Private 用)**:
+* **Subnet name**: `Private-Subnet-1c`。
+* **Availability Zone**: 選 `ap-northeast-1c` (**重點：要跟上面選不同的**)。
+* **IPv4 CIDR block**: 輸入 `10.0.16.0/20`。
+* 解釋
+  * 一個 `/20` 的 Subnet 擁有 **4,096 個 IP**。
+    * **Subnet 1 開始**：`10.0.0.0`
+    * ... (中間經過了 10.0.1.x, 10.0.2.x ... 一直到 10.0.15.x) ...
+    * **Subnet 1 結束**：`10.0.15.255`
+  * 因為 **0 ~ 15** 這段區間（共 16 個數）都已經被第一個 Subnet 用光了。
+  * 所以，**第二個 Subnet** 必須從下一個數字開始，也就是 **16**。
+6. 點擊 **Create subnet**。
+* <img width="1920" height="945" alt="image" src="https://github.com/user-attachments/assets/fd5a0e56-c0aa-49ef-8224-f63ff5a07932" />
+
+<br>
+
+---
+
+<br>
+
+### 2. 承第一題，為該兩個 subnet 分別創建一個 route table，使其成為 public 跟 private subnet。
+
+<br>
+
+---
+
+<br>
+
+### 3. 承第二題，在兩個 subnet 上分別創建一台 ec2，並且使用 ssh 從自己的 laptop 連上此兩台 ec2，提供你的做法。
+
+<br>
+
+---
+
+<br>
+
+### 4. 在 public ec2 上安裝 nginx，並且使用瀏覽器輸入 public ip，取得 nginx 的網頁頁面後截圖。
+
+<br>
+
+---
+
+<br>
+
+### 5. 嘗試在 private 的那台 ec2 上使用 curl google.com 指令，取得回傳的 html 頁面（有回傳就是成功）
