@@ -45,7 +45,7 @@
 #### Policy 的格式 (JSON)
 AWS 的 Policy 是以 JSON 格式 撰寫的，裡面主要包含以下四個關鍵字：
 
-``` JSON
+```JSON
 {
   "Version": "2012-10-17",
   "Statement": [
@@ -117,12 +117,12 @@ AWS 的 Policy 是以 JSON 格式 撰寫的，裡面主要包含以下四個關�
 
 #### 第三步：驗證並嘗試存取列表
 * 列出 S3 桶子：
-``` cmd
+```cmd
 aws s3 ls
 ```
 
 * 列出 EC2 列表：
-``` cmd
+```cmd
 aws ec2 describe-instances
 ```
 
