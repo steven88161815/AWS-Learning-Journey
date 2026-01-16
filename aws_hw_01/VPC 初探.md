@@ -220,6 +220,150 @@
 
 ### 3. 承第二題，在兩個 subnet 上分別創建一台 ec2，並且使用 ssh 從自己的 laptop 連上此兩台 ec2，提供你的做法。
 
+這題的目標是：
+
+1. 在 Public Subnet 開一台機器  用自己電腦連進去（證明它是 Public）。
+2. 在 Private Subnet 開一台機器  用自己電腦連連看（證明它連不進去）。
+3. **進階挑戰**：那我要怎麼連進那台 Private 機器？（透過 Public 機器當跳板）。
+
+#### 第一步：準備 SSH Key Pair (如果你還沒建)
+
+為了方便實驗，我們這次統一用一個 Key 就好。
+
+1. EC2 控制台  **Key Pairs** → **Create key pair**。
+2. Name: `VPC-Lab-Key`。
+3. Format: `.pem` (Windows CMD/PowerShell 用 `.pem` 也可以，或是用 `.ppk` 給 PuTTY)。
+4. 下載並保管好這個檔案。
+* <img width="882" height="24" alt="image" src="https://github.com/user-attachments/assets/4b79eef1-4638-4e00-9fd3-ba3df89cdc64" />
+
+#### 第二步：啟動 Public EC2
+
+1. **Launch instances**。
+2. **Name**: `Public-EC2`。
+3. **OS**: Amazon Linux 2023。
+4. **Key pair**: 選 `VPC-Lab-Key`。
+5. **Network settings** (這是重點！點擊 Edit)：
+* **VPC**: 選擇 `MyVPC`。
+* **Subnet**: 選擇 `Public-Subnet-1a`。
+* **Auto-assign public IP**: **Enable** (一定要開，不然它就沒有門牌號碼，你也連不進去)。
+* **Security group**: 建立新的，名稱 `Allow-SSH`，規則設為 Allow SSH (port 22) from Anywhere (0.0.0.0/0)。
+6. 點擊 **Launch instance**。
+* <img width="1920" height="945" alt="image" src="https://github.com/user-attachments/assets/76840f2f-e6c1-47d5-bfa0-966b004ce83a" />
+
+#### 第三步：啟動 Private EC2
+
+1. 再次 **Launch instances**。
+2. **Name**: `Private-EC2`。
+3. **OS**: Amazon Linux 2023。
+4. **Key pair**: 選 `VPC-Lab-Key`。
+5. **Network settings** (點擊 Edit)：
+* **VPC**: 選擇 `MyVPC`。
+* **Subnet**: 選擇 `Private-Subnet-1c`。
+* **Auto-assign public IP**: **Disable** (既然是私有，就不需要公網 IP)。
+* **Security group**: 選擇剛剛建的 `Allow-SSH` (讓我們先允許 SSH)。
+6. 點擊 **Launch instance**。
+* <img width="1920" height="945" alt="image" src="https://github.com/user-attachments/assets/9839fe73-418c-4741-b1c9-a426265b95a3" />
+
+#### 第四步：驗證連線 (提供你的做法)
+
+**1. 連線 Public EC2 (應該成功)**
+
+* 取得 Public EC2 的 Public IP (例如 `54.x.x.x`)。
+* 在你的終端機執行：
+```bash
+ssh -i "path/to/VPC-Lab-Key.pem" ec2-user@54.x.x.x
+```
+* 結果圖示
+  * <img width="1113" height="626" alt="image" src="https://github.com/user-attachments/assets/622582e9-addb-471a-88c1-4e73adabef76" />
+
+**2. 連線 Private EC2 (應該失敗)**
+
+* 取得 Private EC2 的 Private IP (例如 `10.0.16.x`)。
+* 嘗試連線：
+* 你會發現它**沒有 Public IP**，所以你根本不知道要連去哪裡。
+* 就算你有它的 Private IP，直接 ssh 也會 timeout，因為你的電腦在網際網路，連不到它內網的 IP。
+
+**3. 進階：透過 Public EC2 當跳板 (Bastion Host) 連進去**
+
+這是連線 Private 機器最標準且安全的做法。
+
+* **原理**：我們不把私鑰複製到 Public EC2 上（避免遺失風險），而是使用 **SSH Agent Forwarding** 技術，讓 Public EC2 充當「轉接頭」，直接借用你筆電裡的鑰匙來開啟 Private EC2 的門。
+
+* **前置作業：以「系統管理員身分」開啟 CMD**
+  * (因為啟動服務需要較高權限，一般視窗會失敗)
+
+* **啟動 SSH Agent 服務 (在你的電腦)**
+先設定服務啟動類型，再將其開啟。
+```cmd
+sc config ssh-agent start= demand
+net start ssh-agent
+```
+
+* **將金鑰加入代理 (在你的電腦)**
+把下載的 `.pem` 鑰匙交給 Agent 保管。
+```cmd
+ssh-add "C:\Users\Steven\Downloads\VPC-Lab-Key.pem"
+```
+
+* **帶著鑰匙連線至 Public EC2 (跳板)**
+關鍵參數是 `-A` (Agent Forwarding)，告訴 SSH Client 允許轉發代理資訊。
+```cmd
+ssh -A ec2-user@<Public-EC2-IP>
+```
+
+* **從 Public EC2 跳轉至 Private EC2**
+登入 Public EC2 後，直接輸入 SSH 指令連線到 Private IP。**注意：此時不需要再指定 `-i key.pem**`，因為它會自動回頭問你筆電裡的 Agent 要鑰匙。
+```bash
+ssh ec2-user@<Private-EC2-IP>
+```
+
+* 結果圖示
+ * <img width="975" height="743" alt="image" src="https://github.com/user-attachments/assets/66831a8d-12fb-474b-b0d7-32788b3835c5" />
+
+#### 補充知識：為什麼需要 SSH Agent？
+
+在透過跳板機 (Public EC2) 連線到內網機器 (Private EC2) 時，我們必須嚴格遵守 **「私鑰不落地 (Private Key never leaves your laptop)」** 的資安原則。
+
+1. **核心概念比較**
+
+| 操作方式 | 做法 | 安全性 | 風險分析 |
+| --- | --- | --- | --- |
+| **❌ 錯誤做法** | 將 `.pem` 私鑰檔案**複製**一份上傳到 Public EC2，再從裡面執行 SSH。 | **危險** | Public EC2 暴露在網際網路，一旦被駭客攻破，你的私鑰檔案就會被竊取，駭客將擁有通往內網所有機器的萬能鑰匙。 |
+| **✅ 正確做法 (SSH Agent)** | 私鑰檔案**只保留在自己的筆電**。透過 `SSH Agent Forwarding` 技術，讓 Public EC2 充當「驗證轉發站」。 | **安全** | 即使 Public EC2 被攻破，駭客也找不到任何私鑰檔案。因為鑰匙根本不在那裡。 |
+
+2. **SSH Agent 運作流程**
+
+這個機制分為兩個階段：先 **「建立通道」**，再 **「使用通道」**。
+
+* **第一階段：建立通道 (帶著 Agent 出門)**
+  * **指令**：在筆電執行 `ssh -A ec2-user@Public-IP`
+  * **動作**：你成功登入 Public EC2（跳板機）。
+  * **關鍵意義**：
+  * 參數 `-A` (Agent Forwarding) 的作用是在這條連線中，暗中建立一條 **「指回你筆電的 Unix Domain Socket 通道」**。
+  * 此時，Public EC2 已經準備好隨時把未來的驗證請求轉發回來，但還沒開始轉發。
+
+* **第二階段：使用通道 (實際驗證)**
+  * **指令**：在 Public EC2 裡面執行 `ssh ec2-user@Private-IP`
+  * **流程觸發**：
+    * **請求**：Private EC2 收到連線請求，要求出示私鑰證明。
+    * **轉發**：Public EC2 發現自己沒私鑰，但記得有建立通道，於是透過通道說：「筆電筆電，Private EC2 要驗證，快幫我簽名！」
+    * **簽署**：你的 **SSH Agent** (在筆電端) 收到請求，使用記憶體裡的私鑰進行「數位簽名」，再傳回給 Public EC2。
+    * **回傳**：Public EC2 拿到簽名後轉交給 Private EC2。
+    * **成功**：Private EC2 驗證通過，允許登入。
+
+3. **為什麼 Windows 需要打那些指令？**
+
+在 Windows 系統中，OpenSSH Agent 被設計為一個 **系統服務 (Service)**，預設狀態通常是「停用」或「未執行」。
+
+* `sc config ssh-agent start= demand`
+  * 解鎖服務設定。將其啟動類型改為「手動」，允許它被呼叫。
+
+* `net start ssh-agent`
+  * 叫醒服務。讓 Agent 開始在背景執行（上班）。
+
+* `ssh-add "路徑/key.pem"`
+  * 把私鑰交給 Agent 代管。讓 Agent 把鑰匙載入記憶體，準備隨時應付簽名請求。
+
 <br>
 
 ---
