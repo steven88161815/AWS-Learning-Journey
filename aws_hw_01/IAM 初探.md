@@ -19,7 +19,8 @@
 <br>
 
 ### 2. user, group, role, policy 彼此間的關係為何？policy 的格式為何？
-<img width="2878" height="1620" alt="image" src="https://github.com/user-attachments/assets/494aefd0-9ecf-40d6-ae76-9ad8c37e32b2" />
+<img width="866" height="361" alt="image" src="https://github.com/user-attachments/assets/2d6b9802-c234-48d6-92d1-97aea3f5fa2f" />
+
 
 這四個元件的關係可以用一個簡單的公式來理解：「 `誰 (User/Group/Role)` + `透過什麼規則 (Policy)` + 能做什麼事」。
 
