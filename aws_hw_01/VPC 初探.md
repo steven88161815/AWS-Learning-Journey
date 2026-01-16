@@ -196,6 +196,11 @@
 * 點擊 **Save associations**。
 * <img width="1920" height="438" alt="image" src="https://github.com/user-attachments/assets/96b7a3f2-9b91-44e2-ae93-39baa7a1be1b" />
 
+#### 補充
+
+* Q: 創建 VPC 時不是會自動送一張 Route Table 嗎？ 
+* A: 是的，那張叫 Main Route Table。 但為了安全起見，AWS 最佳實踐建議我們不要修改主路由表來當作 Public 用途。我們應該保持主路由表為 Private (僅限內部溝通)，並另外手動建立專用的 Public Route Table。這樣可以防止未來新建立的 Subnet 不小心意外暴露在網際網路上。
+
 #### 📝 對照表
 
 | 路由表名稱 | 關聯的 Subnet | 有無 `0.0.0.0/0` 指向 IGW? | 用途 |
