@@ -276,12 +276,12 @@ ssh -i "path/to/VPC-Lab-Key.pem" ec2-user@54.x.x.x
 * 結果圖示
   * <img width="1113" height="626" alt="image" src="https://github.com/user-attachments/assets/622582e9-addb-471a-88c1-4e73adabef76" />
 
-**2. 連線 Private EC2 (應該失敗)**
+**2. 連線 Private EC2 (失敗)**
 
 * 取得 Private EC2 的 Private IP (例如 `10.0.16.x`)。
 * 嘗試連線：
-* 你會發現它**沒有 Public IP**，所以你根本不知道要連去哪裡。
-* 就算你有它的 Private IP，直接 ssh 也會 timeout，因為你的電腦在網際網路，連不到它內網的 IP。
+  * 你會發現它**沒有 Public IP**，所以你根本不知道要連去哪裡。
+  * 就算你有它的 Private IP，直接 ssh 也會 timeout，因為你的電腦在網際網路，連不到它內網的 IP。
 
 **3. 進階：透過 Public EC2 當跳板 (Bastion Host) 連進去**
 
@@ -415,7 +415,7 @@ sudo systemctl status nginx
 
 回到 AWS Console 操作：
 1. 進入 **EC2 控制台**  左側 **Security Groups**。
-2. 找到你綁定給 Public EC2 的那個群組（名字應該叫 `Allow-SSH` 或你剛剛取的）。
+2. 找到你綁定給 Public EC2 的那個群組（名字應該叫 `Allow-SSH`）。
 3. 點擊下方的 **Inbound rules** → **Edit inbound rules**。
 * <img width="1920" height="945" alt="image" src="https://github.com/user-attachments/assets/6c9cc11c-490a-49d4-a4c4-71e2b6baa369" />
 4. 點擊 **Add rule**：
