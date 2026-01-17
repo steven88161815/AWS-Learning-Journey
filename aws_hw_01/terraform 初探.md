@@ -185,25 +185,63 @@ module "app"      { source = "./modules/ec2" }
 
 ### 6. terraform 的資源創建順序為何？如何去控制相依性？
 
+#### 1. 預設順序：平行處理與相依性圖 (Parallelism & Dependency Graph)
 
+Terraform 最大的特色之一，就是它**不是**依照你寫程式碼的「上下順序」一行一行執行的。
 
+* **預設行為**：Terraform 會先分析所有資源，畫出一張 **「相依性圖 (Dependency Graph)」**。
+* **平行執行**：在這張圖中，只要兩個資源之間**沒有關聯**（誰也不依靠誰），Terraform 為了加速，預設會 **「同時 (Parallel)」** 去建立它們。
+* *例如：你同時寫了一個 VPC 和一個 S3 Bucket。這兩者互不相干，Terraform 就會同時向 AWS 發送 API 請求。*
 
+#### 2. 如何控制順序？ (兩種相依性)
 
+如果資源之間有先後關係（例如：一定要先有 VPC，才能在裡面開 EC2），Terraform 提供了兩種方式來處理：
 
+**方法一：隱式相依性 (Implicit Dependency) [最推薦/最常用]**
 
+這是 Terraform 最聰明的地方。你不需要刻意去告訴它順序，只要你在程式碼中 **「引用」** 了另一個資源的屬性，Terraform 就會自動知道先後順序。
 
+* **範例**：
+```hcl
+# 1. 建立 VPC
+resource "aws_vpc" "my_vpc" {
+  cidr_block = "10.0.0.0/16"
+}
 
+# 2. 建立 Subnet (引用了上面的 VPC ID)
+resource "aws_subnet" "my_subnet" {
+  vpc_id     = aws_vpc.my_vpc.id  # <--- 關鍵在這行
+  cidr_block = "10.0.1.0/24"
+}
+```
+* **解讀**：因為 `aws_subnet` 裡面的 `vpc_id` 引用了 `aws_vpc.my_vpc.id`，Terraform 會自動判斷：「我必須先等 VPC 建好、拿到 ID 之後，才能開始建 Subnet」。這就是隱式相依。
 
+**方法二：顯式相依性 (Explicit Dependency)**
 
+有時候，資源之間沒有直接的參數引用關係，但邏輯上你還是希望有先後順序。這時就要用 **`depends_on`** 這個參數來強制指定。
 
+* **情境**：你的 EC2 應用程式啟動時，需要去讀取 S3 Bucket 裡面的設定檔。雖然 EC2 的參數裡沒有寫到 S3，但如果 Bucket 還沒好，EC2 起來就會報錯。
+* **範例**：
+```hcl
+resource "aws_s3_bucket" "config_bucket" {
+  bucket = "my-app-config"
+}
 
+resource "aws_instance" "web" {
+  ami           = "ami-12345678"
+  instance_type = "t2.micro"
 
+  # 強制告訴 Terraform：先去把 Bucket 建好，再來建我！
+  depends_on = [
+    aws_s3_bucket.config_bucket
+  ]
+}
+```
+#### 📝 重點整理
 
-
-
-
-
-
+1. **預設行為**：Terraform 會建立相依性圖 (Graph)，互不相關的資源會 **平行 (Parallel)** 建立以節省時間。
+2. **隱式相依 (Implicit)**：透過引用其他資源的屬性 (如 `vpc_id = aws_vpc.example.id`)，Terraform 會自動偵測並安排順序。這是最推薦的做法。
+3. **顯式相依 (Explicit)**：使用 **`depends_on`** 參數，強制指定資源必須在另一個資源建立完成後才能開始建立。通常用於解決隱藏的邏輯依賴。
 
 ### 7. 何為 datasource?
 ### 8. 若使用 terraform 創建一台 ec2，希望對該 ec2 進行初始化操作，有哪些方式做到這件事，盡可能地列舉。
