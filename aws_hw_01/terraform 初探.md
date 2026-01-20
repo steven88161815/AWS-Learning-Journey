@@ -244,7 +244,71 @@ resource "aws_instance" "web" {
 3. **顯式相依 (Explicit)**：使用 **`depends_on`** 參數，強制指定資源必須在另一個資源建立完成後才能開始建立。通常用於解決隱藏的邏輯依賴。
 
 ### 7. 何為 datasource?
+
+#### 1. 什麼是 Datasource？
+
+**定義：**
+Datasource 是 Terraform 用來 **「查詢雲端上已經存在的資源」** 的一種唯讀介面。
+它**不會**建立、修改或刪除任何東西，它只是負責去 AWS 把這項資源的資訊（ID, ARN, IP 等）抓回來，讓你可以在程式碼中引用。
+
+**簡單的比喻：**
+
+* **Resource (資源)**：像是**「建築工」**。你告訴他：「去幫我蓋一棟房子（建立 EC2）。」
+* **Datasource (資料來源)**：像是**「查號台」**或**「偵探」**。你告訴他：「去幫我查一下那棟已經蓋好的房子地址在哪裡（查詢 VPC ID）。」
+
+#### 2. 為什麼需要 Datasource？ (使用情境)
+
+通常有兩種主要情境會用到它：
+
+**情境一：與「非 Terraform 管理」的資源介接**
+
+* **狀況**：你的 VPC 是網路部門早就建好的（可能是手動建的，或用別的工具建的）。你的 Terraform 專案只需要負責在裡面開 EC2。
+* **問題**：你的程式碼怎麼知道那個 VPC 的 ID 是多少？寫死 `vpc-123456` 嗎？這樣換個環境就掛了。
+* **解法**：使用 `data "aws_vpc"` 去查詢「名稱叫 `Main-VPC`」的那個 VPC，動態取得它的 ID。
+
+**情境二：取得動態變動的資訊 (如 AMI)**
+
+* **狀況**：你想開一台 Amazon Linux 2023 的機器。但 AWS 常常更新映像檔，AMI ID (例如 `ami-0abc...`) 每隔一段時間就會變。
+* **問題**：如果你把 ID 寫死，過幾個月這個 ID 可能就過期失效了。
+* **解法**：使用 `data "aws_ami"` 設定過濾條件（我要最新的、Amazon Linux 2023），每次執行 `apply` 時，Terraform 就會自動去問 AWS：「現在最新的是哪一個？」並抓回來用。
+
+#### 3. 程式碼範例
+
+這是一個最經典的例子：**「自動查詢最新的 Amazon Linux AMI」**。
+
+```hcl
+# 定義一個 Datasource (偵探)
+data "aws_ami" "latest_amazon_linux" {
+  most_recent = true      # 我要最新的
+  owners      = ["amazon"] # 發行者是 Amazon
+
+  # 設定搜尋條件 (就像 SQL 的 Where)
+  filter {
+    name   = "name"
+    values = ["al2023-ami-2023.*-x86_64"] # 檔名要符合這個規則
+  }
+}
+
+# 建立資源 (建築工)
+resource "aws_instance" "web" {
+  # 這裡不寫死 ID，而是引用上面的 Datasource 查到的結果
+  ami           = data.aws_ami.latest_amazon_linux.id 
+  instance_type = "t2.micro"
+}
+```
+
+#### 重點整理
+
+1. **定義**：Datasource 是 Terraform 的 **唯讀 (Read-Only)** 元件，用來查詢雲端上 **已存在** 的資源資訊。
+2. **關鍵字**：使用 `data` 開頭 (區別於 `resource`)。
+3. **用途**：
+* 查詢 **外部資源** (非此專案建立的，如共用的 VPC)。
+* 查詢 **動態資訊** (如最新的 AMI ID、AWS 帳號 ID、當前 Region)。
+4. **好處**：避免在程式碼中將 ID 寫死 (Hardcode)，讓程式碼更具彈性與可攜性。
+
 ### 8. 若使用 terraform 創建一台 ec2，希望對該 ec2 進行初始化操作，有哪些方式做到這件事，盡可能地列舉。
+
+
 
 ## 【實作題】
 
