@@ -308,7 +308,77 @@ resource "aws_instance" "web" {
 
 ### 8. 若使用 terraform 創建一台 ec2，希望對該 ec2 進行初始化操作，有哪些方式做到這件事，盡可能地列舉。
 
+#### 1. 使用 User Data (使用者資料) [最推薦/最常用]
 
+這是 AWS EC2 原生提供的功能。你可以在 Terraform 程式碼中直接塞入一段 Shell Script 或 Cloud-Init 設定檔。
+
+* **作法**：在 `aws_instance` 資源中使用 `user_data` 參數。
+```hcl
+resource "aws_instance" "web" {
+  # ... 其他設定 ...
+  user_data = <<-EOF
+              #!/bin/bash
+              yum update -y
+              yum install -y nginx
+              systemctl start nginx
+              EOF
+}
+```
+
+* **優點**：簡單、原生支援、完全自動化。
+* **缺點**：如果腳本太複雜（例如幾百行），會很難除錯與維護。
+
+#### 2. 使用 Custom AMI (黃金映像檔) [高效能/不可變基礎設施]
+
+與其開機後才慢慢裝軟體，不如先把軟體都裝好，打包成一個映像檔 (AMI)。
+
+* **作法**：
+1. 使用工具（如 **Packer**）先在本地建立一台機器，安裝好所有需要的環境（Java, Tomcat, Log agent...）。
+2. 將其打包成 AMI。
+3. Terraform 直接指定這個 AMI ID 來開機。
+
+* **優點**：**開機即用**（不用等安裝時間），啟動速度最快，且保證環境絕對一致。
+* **缺點**：每次軟體更新（例如修一個 Bug）都要重新打包 AMI，流程較繁瑣。
+
+#### 3. 結合組態管理工具 (Terraform + Ansible) [適合複雜設定]
+
+讓 Terraform 專注於「生出機器」，讓專業的工具（Ansible）專注於「設定機器」。
+
+* **作法**：
+* Terraform 建立 EC2。
+* 使用 `local-exec` 呼叫 Ansible Playbook，針對剛建好的 IP 進行軟體安裝。
+
+* **優點**：Ansible 的劇本 (Playbook) 比 Shell Script 好讀、好維護，且適合管理大量複雜的設定檔。
+* **缺點**：需要學習兩套工具，且架構較複雜。
+
+#### 4. 使用 Terraform Provisioners (`remote-exec` / `file`) [官方不推薦]
+
+這是 Terraform 早期提供的功能，允許 Terraform 在執行過程中透過 SSH 連進機器跑指令。
+
+* **作法**：
+```hcl
+resource "aws_instance" "web" {
+  # ...
+  provisioner "remote-exec" {
+    inline = [
+      "yum install -y nginx",
+    ]
+  }
+}
+```
+
+* **為什麼不推薦？**
+* **破壞狀態追蹤**：Terraform 無法完美追蹤這些指令到底有沒有成功，如果網路斷線導致指令跑一半，Terraform 可能會誤判為成功，造成「髒狀態」。
+* HashiCorp 官方建議將此作為**最後手段 (Last Resort)**，盡量用 User Data 取代。
+
+#### 重點整理
+
+| 方式 | 核心概念 | 適用場景 |
+| :---: | :---: | :---: |
+| **1. User Data** | 傳入 Shell Script，開機時由 AWS 自動執行一次。 | **最通用**。安裝簡單軟體、Docker、下載程式碼。 |
+| **2. Custom AMI** | 先把軟體裝好打包成映像檔 (Pre-baked)。 | **要求快速擴展**。如 Auto Scaling Group，需要秒級啟動。 |
+| **3. Ansible** | 機器建好後，由外部工具連進去設定。 | **複雜組態**。需要長期維護、大量設定檔管理。 |
+| **4. Provisioners** | Terraform 透過 SSH 連進去跑指令。 | **不推薦**。僅用於無法使用上述方法的特殊情況。 |
 
 ## 【實作題】
 
