@@ -274,7 +274,7 @@ aws ec2 describe-instances --profile s3_user
 #### 第一步：創建 IAM Role
 首先，我們要建立一個專門給 EC2 穿的「制服」。
 
-1. 進入 **IAM 控制台**，點擊左側 **Roles**  **Create role**。
+1. 進入 **IAM 控制台**，點擊左側 **Roles** → **Create role**。
 2. **Select trusted entity**：選擇 **AWS service**，並在下方選擇 **EC2**（這代表這套制服是給 EC2 穿的）。
 3. **Add permissions**：搜尋並勾選 `AmazonS3ReadOnlyAccess`。
 4. **Name, review, and create**：將 Role 命名為 `EC2S3ReadOnlyRole`。
