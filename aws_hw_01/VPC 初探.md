@@ -484,7 +484,7 @@ curl -I https://www.google.com
 NAT Gateway 是 AWS **收費較高** 的元件（不管有沒有流量，只要開著就在計費，每小時約 0.045 USD，一天約 1 美金）。**作業截圖完成後，請務必執行刪除動作：**
 
 1. **刪除 NAT Gateway**:
-* NAT Gateways  選中 `MyNAT`  Actions  **Delete NAT gateway**。
+* NAT Gateways  選中 `MyNAT` → Actions: **Delete NAT gateway**。
 * 輸入 `delete` 確認。
 * <img width="1920" height="945" alt="image" src="https://github.com/user-attachments/assets/45b49740-e0f6-4010-bf79-d8486d903a81" />
 * *狀態會變成 `Deleting`。*
