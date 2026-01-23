@@ -85,7 +85,7 @@
 
 我們要切出兩個 `/20` 大小的隔間，並且故意放在不同的 AZ 以分散風險。
 
-1. 點擊左側 **Subnets**  **Create subnet**。
+1. 點擊左側 **Subnets** → **Create subnet**。
 2. **VPC ID**: 選擇剛剛建立的 `MyVPC`。
 3. **建立第一個 Subnet (未來當 Public 用)**:
 * **Subnet name**: `Public-Subnet-1a` (建議名稱帶上 AZ)。
