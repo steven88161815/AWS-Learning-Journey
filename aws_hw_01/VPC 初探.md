@@ -160,7 +160,7 @@
 * 點擊 **Save changes**。
 * <img width="1920" height="385" alt="image" src="https://github.com/user-attachments/assets/69c9088d-0546-4cb7-a52a-86ac6dca2bf0" />
 4. **關聯 Subnet (指定生效範圍)**：
-* 切換到 **Subnet associations** 分頁  **Edit subnet associations**。
+* 切換到 **Subnet associations** 分頁 → **Edit subnet associations**。
 * <img width="1920" height="945" alt="image" src="https://github.com/user-attachments/assets/141932ad-b722-4c39-bb2a-09eafcc9eeea" />
 * 勾選 `Public-Subnet-1a` (我們說好這個要當 Public 的)。
 * 點擊 **Save associations**。
