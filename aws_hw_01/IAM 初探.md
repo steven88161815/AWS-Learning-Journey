@@ -219,7 +219,7 @@ aws ec2 describe-instances --profile s3_user
 
 現在我們為他量身打造一個「有期限的通行證」。
 
-* **建立 Inline Policy**：在同一個使用者頁面，點擊 **Add permissions**  **Create inline policy**。
+* **建立 Inline Policy**：在同一個使用者頁面，點擊 **Add permissions** → **Create inline policy**。
 * **切換至 JSON 編輯器**：將以下內容貼入。
 * **注意**：請將 `DateLessThan` 的時間設定為**現在時間往後推 5~10 分鐘**。
 ```json
