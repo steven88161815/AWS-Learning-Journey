@@ -403,6 +403,13 @@ resource "aws_instance" "web" {
 2. **產生 SSH Key (如果還沒有的話)**：
 * 我們需要一把公鑰 (Public Key) 交給 AWS，這樣你才能登入機器。
 * 執行指令：`ssh-keygen -t rsa -b 2048 -f my-key`
+  * **`ssh-keygen`**：這是主程式名稱，專門用來產生、管理和轉換身分驗證金鑰。
+  * **`-t rsa`**：**t** 代表 **Type**。這是在指定要使用的加密演算法。`rsa`（Rivest-Shamir-Adleman）是目前最通用且相容性最好的加密演算法。
+  * **`-b 2048`**：**b** 代表 **Bits**。這是在指定金鑰的長度（安全性強度）。`2048` 位元是目前的標準安全長度。數字越大越難被破解，但運算也會稍微變慢。
+  * **`-f my-key`**：**f** 代表 **File**。這是在指定產生的檔案名稱。
+  * 執行後，系統會產出兩個檔案：
+    * **`my-key`**（私鑰）：這相當於你的**印章或鑰匙**，必須留在自己電腦，絕對不能給別人。
+    * **`my-key.pub`**（公鑰）：這相當於**鎖頭**。我們會把這個檔案內容交給 AWS，裝在 EC2 上。
 * 一路按 Enter 即可。你會在目錄下看到 `my-key` (私鑰) 和 `my-key.pub` (公鑰)。
 * **注意**：`my-key` (私鑰) **絕對不能**上傳到 GitHub！請在 `.gitignore` 檔案中加入 `*.pem` 或 `my-key`。
 
@@ -591,6 +598,7 @@ terraform apply
 * **圖中元素**：User (你) -> Internet -> Security Group (Port 22) -> EC2 Instance -> (Inside Default VPC)。
 * 把圖存成 `architecture.png`，放在專案裡。
 * 在 `README.md` 裡寫上 `![Architecture](./architecture.png)` 就可以顯示了。
+
 
 
 
