@@ -382,9 +382,253 @@ resource "aws_instance" "web" {
 
 ## 【實作題】
 
-創建一個 project(github repo)，使用 terraform 創建一台 EC2，並且設定相關資源，例如 VPC（可選）、security group(firewall)、key pair 等。（可以嘗試跟 ai 詢問怎樣的檔案架構是比較好的。）
-延續上一題，嘗試將一些可變動的參數改成使用 variables 輸入，以及使用 output 來輸出一些資訊（例如 ssh 登入指令或是 public ip 等）。
-嘗試使用 draw.io 這類的工具，畫簡單的架構圖，並附於 github readme 中。
+``` md
+1. 創建一個 project(github repo)，使用 terraform 創建一台 EC2，並且設定相關資源，例如 VPC（可選）、security group(firewall)、key pair 等。（可以嘗試跟 ai 詢問怎樣的檔案架構是比較好的。）
+2. 延續上一題，嘗試將一些可變動的參數改成使用 variables 輸入，以及使用 output 來輸出一些資訊（例如 ssh 登入指令或是 public ip 等）。
+3. 嘗試使用 draw.io 這類的工具，畫簡單的架構圖，並附於 github readme 中。
+```
+
+建議**直接採用標準的 Terraform 專案結構**來開始。這樣你不用後面再辛苦地拆分檔案，而且一開始就養成好習慣。
+
+### 步驟一：準備工作 (GitHub 與 SSH Key)
+
+在開始寫程式之前，我們需要兩個東西：一個存放程式碼的資料夾（將來推上 GitHub），以及一把用來登入 EC2 的鑰匙。
+
+1. **建立專案資料夾**：
+* 在你的電腦（或 Git Bash）中，建立一個新資料夾，例如 `terraform-ec2-demo`。
+* `mkdir terraform-ec2-demo`
+* `cd terraform-ec2-demo`
+* *(可選)* 初始化 git：`git init`
+
+2. **產生 SSH Key (如果還沒有的話)**：
+* 我們需要一把公鑰 (Public Key) 交給 AWS，這樣你才能登入機器。
+* 執行指令：`ssh-keygen -t rsa -b 2048 -f my-key`
+* 一路按 Enter 即可。你會在目錄下看到 `my-key` (私鑰) 和 `my-key.pub` (公鑰)。
+* **注意**：`my-key` (私鑰) **絕對不能**上傳到 GitHub！請在 `.gitignore` 檔案中加入 `*.pem` 或 `my-key`。
+
+### 步驟二：建立標準檔案架構
+
+一個好的 Terraform 專案，通常不會把幾百行程式碼全塞在一個檔案。我們會依照功能拆分：
+
+請在資料夾中建立以下 4 個空檔案：
+
+1. **`providers.tf`**：設定 AWS Provider 版本與區域。
+2. **`variables.tf`**：定義所有「可變動」的參數（如 Instance Type, Key Path）。
+3. **`main.tf`**：核心邏輯，定義 EC2, Security Group, Key Pair 等資源。
+4. **`outputs.tf`**：定義執行完要印出什麼資訊（如 IP, 登入指令）。
+
+### 步驟三：開始撰寫程式碼
+
+我們一個檔案一個檔案來填入內容。
+
+#### 1. 設定 `providers.tf`
+
+這是告訴 Terraform 我們要用 AWS，以及去哪個 Region。
+
+```hcl
+# providers.tf
+
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+  }
+}
+
+provider "aws" {
+  region = var.aws_region  # 這裡引用了變數，等下會定義
+}
+```
+
+#### 2. 定義 `variables.tf`
+
+這裡定義我們想讓使用者（或你自己）可以彈性調整的參數。
+
+```hcl
+# variables.tf
+
+variable "aws_region" {
+  description = "AWS region to deploy resources"
+  default     = "ap-northeast-1" # 東京 (你可以改成你喜歡的)
+}
+
+variable "project_name" {
+  description = "Name prefix for resources"
+  default     = "terraform-demo"
+}
+
+variable "instance_type" {
+  description = "Type of EC2 instance"
+  default     = "t2.micro"
+}
+
+variable "public_key_path" {
+  description = "Path to the public key file"
+  default     = "./my-key.pub" # 指向剛剛產生的公鑰
+}
+```
+
+#### 3. 撰寫核心邏輯 `main.tf`
+
+這是重頭戲。我們會用到剛剛學的 `data` (查 AMI, 查預設 VPC) 和 `resource`。
+
+```hcl
+# main.tf
+
+# 1. 查詢現有的 Default VPC (為了簡化，我們先不自己建 VPC)
+data "aws_vpc" "default" {
+  default = true
+}
+
+# 2. 查詢最新的 Amazon Linux 2023 AMI
+data "aws_ami" "amazon_linux" {
+  most_recent = true
+  owners      = ["amazon"]
+  filter {
+    name   = "name"
+    values = ["al2023-ami-2023.*-x86_64"]
+  }
+}
+
+# 3. 建立 Key Pair (把你的公鑰上傳給 AWS)
+resource "aws_key_pair" "deployer" {
+  key_name   = "${var.project_name}-key"
+  public_key = file(var.public_key_path) # 讀取你的公鑰檔案內容
+}
+
+# 4. 建立 Security Group (防火牆)
+resource "aws_security_group" "allow_ssh" {
+  name        = "${var.project_name}-sg"
+  description = "Allow SSH inbound traffic"
+  vpc_id      = data.aws_vpc.default.id # 放在預設 VPC 裡
+
+  # 入站規則 (Inbound): 允許 SSH (Port 22)
+  ingress {
+    description = "SSH from anywhere"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"] # 注意：生產環境應限制 IP
+  }
+
+  # 出站規則 (Outbound): 允許所有流量 (讓機器可以 Update/裝軟體)
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+# 5. 建立 EC2 Instance
+resource "aws_instance" "web" {
+  ami           = data.aws_ami.amazon_linux.id
+  instance_type = var.instance_type
+  key_name      = aws_key_pair.deployer.key_name
+  
+  # 綁定上面建的 Security Group
+  vpc_security_group_ids = [aws_security_group.allow_ssh.id]
+
+  tags = {
+    Name = "${var.project_name}-ec2"
+  }
+}
+```
+
+#### 4. 設定 `outputs.tf`
+
+執行完我們不想去 AWS Console 查 IP，直接讓 Terraform 印出來。
+
+```hcl
+# outputs.tf
+
+output "instance_public_ip" {
+  description = "The public IP of the EC2 instance"
+  value       = aws_instance.web.public_ip
+}
+
+output "ssh_command" {
+  description = "Command to SSH into the instance"
+  value       = "ssh -i my-key ec2-user@${aws_instance.web.public_ip}"
+}
+```
+
+### 步驟四：執行部署
+
+檔案都存好後，回到 Git Bash (或終端機)：
+
+1. **初始化** (下載 AWS Plugin)：
+```cmd
+terraform init
+
+```
+
+
+2. **預覽計畫** (檢查會建立什麼)：
+```bash
+terraform plan
+
+```
+
+
+*確認看到 `Plan: 3 to add` (Instance, Key Pair, SG)*
+3. **開始部署**：
+```bash
+terraform apply
+
+```
+
+
+*輸入 `yes` 確認。*
+
+---
+
+### 步驟五：驗證
+
+當看到綠色的 `Apply complete!` 之後，你會看到 Outputs 區塊印出了 `ssh_command`。
+
+直接複製那一行指令貼上執行（記得要在有 `my-key` 私鑰的目錄下），如果成功登入 Amazon Linux，恭喜你！你已經完成了人生第一個完整的 Terraform 專案！🎉
+
+---
+
+### 關於架構圖 (Draw.io)
+
+這部分你可以自己練習畫畫看。
+
+* **圖中元素**：User (你) -> Internet -> Security Group (Port 22) -> EC2 Instance -> (Inside Default VPC)。
+* 把圖存成 `architecture.png`，放在專案裡。
+* 在 `README.md` 裡寫上 `![Architecture](./architecture.png)` 就可以顯示了。
+
+等你實作完成或遇到 Error，隨時把錯誤訊息貼給我，我幫你除錯！加油！
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ## 【進階題】
 
